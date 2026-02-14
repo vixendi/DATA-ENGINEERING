@@ -18,3 +18,7 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "scripts_prefix" {
+  type = string
+}

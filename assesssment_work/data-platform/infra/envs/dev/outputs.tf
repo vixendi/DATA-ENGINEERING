@@ -17,3 +17,8 @@ output "GlueDatabaseName" {
 output "GlueCrawlerName" {
   value = module.glue.raw_crawler_name
 }
+
+output "GlueJobSalesRawToBronze" { value = module.glue.job_sales_raw_to_bronze }
+output "GlueJobSalesBronzeToSilver" { value = module.glue.job_sales_bronze_to_silver }
+output "GlueJobCustomersRawToSilver" { value = module.glue.job_customers_raw_to_silver }
+output "GlueJobUserProfilesRawToSilver" { value = module.glue.job_profiles_raw_to_silver }

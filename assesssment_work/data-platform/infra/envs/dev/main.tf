@@ -21,5 +21,6 @@ module "glue" {
   env                  = local.env
   datalake_bucket_name = module.s3.datalake_bucket_name
   glue_role_arn        = module.iam.glue_role_arn
+  scripts_prefix       = "s3://${module.s3.datalake_bucket_name}/scripts/glue/jobs"
   tags                 = local.tags
 }
