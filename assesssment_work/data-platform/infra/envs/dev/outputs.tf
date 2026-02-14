@@ -9,3 +9,11 @@ output "GlueRoleArn" {
 output "RedshiftS3RoleArn" {
   value = module.iam.redshift_s3_role_arn
 }
+
+output "GlueDatabaseName" {
+  value = module.glue.glue_database_name
+}
+
+output "GlueCrawlerName" {
+  value = module.glue.raw_crawler_name
+}
