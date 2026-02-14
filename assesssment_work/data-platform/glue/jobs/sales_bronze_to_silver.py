@@ -1,45 +1,67 @@
 import sys
-from awsglue.utils import getResolvedOptions
 from awsglue.context import GlueContext
 from awsglue.job import Job
+from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
-from pyspark.sql.functions import col, to_date, trim, regexp_replace
-from pyspark.sql.types import DecimalType
+from pyspark.sql import functions as F
 
-args = getResolvedOptions(sys.argv, [
-    "JOB_NAME",
-    "in_path",
-    "out_path",
-])
+"""
+Sales (Glue Catalog raw_sales) -> Silver parquet partitioned by purchase_date
+Fix: ensure purchase_date is a real column in parquet (not only a partition folder name).
+Fix: read from Glue Catalog via from_catalog (avoids ParseException with '-' in db name).
+Args are OPTIONAL to allow running without Terraform DefaultArguments.
+"""
 
-sc = SparkContext()
-glueContext = GlueContext(sc)
-spark = glueContext.spark_session
-job = Job(glueContext)
+sc = SparkContext.getOrCreate()
+glue_context = GlueContext(sc)
+spark = glue_context.spark_session
+
+args = getResolvedOptions(sys.argv, ["JOB_NAME"])
+
+def _get_arg(name: str, default: str) -> str:
+    prefix = f"--{name}="
+    for a in sys.argv:
+        if a.startswith(prefix):
+            return a.split("=", 1)[1]
+    return default
+
+source_db = _get_arg("SOURCE_DB", "data-platform_glue_db")
+source_table = _get_arg("SOURCE_TABLE", "raw_sales")
+target_path = _get_arg("TARGET_S3_PATH", "s3://datalake-842940822473-dev/silver/sales").rstrip("/")
+
+job = Job(glue_context)
 job.init(args["JOB_NAME"], args)
 
-df = spark.read.parquet(args["in_path"])
+# Read from Glue Data Catalog (safe for db names with '-')
+dyf = glue_context.create_dynamic_frame.from_catalog(
+    database=source_db,
+    table_name=source_table
+)
+df = dyf.toDF()
 
-# Clean + rename + type casting
-# PurchaseDate expected like '2022-09-1' or '2022-09-01' -> normalize by Spark to_date (yyyy-MM-dd works for both)
-clean_price = regexp_replace(trim(col("Price")), r"[^0-9\.\-]", "")
+# Crawler lowercases column names
+cols = {c.lower(): c for c in df.columns}
 
-silver = (
+def c(name: str):
+    key = name.lower()
+    if key not in cols:
+        raise RuntimeError(f"Missing column '{name}'. Available: {df.columns}")
+    return F.col(cols[key])
+
+df2 = (
     df.select(
-        col("CustomerId").cast("bigint").alias("client_id"),
-        to_date(trim(col("PurchaseDate"))).alias("purchase_date"),
-        trim(col("Product")).alias("product_name"),
-        clean_price.cast(DecimalType(10, 2)).alias("price"),
+        c("customerid").cast("bigint").alias("client_id"),
+        F.to_date(c("purchasedate").cast("string"), "yyyy-M-d").alias("purchase_date"),
+        F.trim(c("product").cast("string")).alias("product_name"),
+        F.regexp_replace(c("price").cast("string"), r"[^0-9.]", "").cast("decimal(10,2)").alias("price"),
     )
-    .where(col("client_id").isNotNull() & col("purchase_date").isNotNull() & col("product_name").isNotNull())
+    .filter(F.col("purchase_date").isNotNull() & F.col("client_id").isNotNull())
 )
 
-# Partition by purchase_date
-(
-    silver.write
+(df2.write
     .mode("overwrite")
     .partitionBy("purchase_date")
-    .parquet(args["out_path"])
+    .parquet(target_path)
 )
 
 job.commit()
