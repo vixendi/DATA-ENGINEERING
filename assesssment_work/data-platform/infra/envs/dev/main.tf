@@ -24,3 +24,16 @@ module "glue" {
   scripts_prefix       = "s3://${module.s3.datalake_bucket_name}/scripts/glue/jobs"
   tags                 = local.tags
 }
+
+module "redshift" {
+  source = "../../modules/redshift_serverless"
+
+  project_name = local.project
+  env          = local.env
+  tags         = local.tags
+
+  admin_username = "admin"
+  allowed_cidr   = "162.120.187.35/32"
+
+  redshift_iam_role_arn = module.iam.redshift_s3_role_arn
+}

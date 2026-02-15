@@ -7,9 +7,9 @@ from pyspark.sql import functions as F
 
 """
 Sales (Glue Catalog raw_sales) -> Silver parquet partitioned by purchase_date
-Fix: ensure purchase_date is a real column in parquet (not only a partition folder name).
-Fix: read from Glue Catalog via from_catalog (avoids ParseException with '-' in db name).
-Args are OPTIONAL to allow running without Terraform DefaultArguments.
+IMPORTANT:
+- Spark drops partition columns from parquet files.
+- To load into Redshift via COPY, we store purchase_date additionally as purchase_date_value.
 """
 
 sc = SparkContext.getOrCreate()
@@ -32,16 +32,10 @@ target_path = _get_arg("TARGET_S3_PATH", "s3://datalake-842940822473-dev/silver/
 job = Job(glue_context)
 job.init(args["JOB_NAME"], args)
 
-# Read from Glue Data Catalog (safe for db names with '-')
-dyf = glue_context.create_dynamic_frame.from_catalog(
-    database=source_db,
-    table_name=source_table
-)
+dyf = glue_context.create_dynamic_frame.from_catalog(database=source_db, table_name=source_table)
 df = dyf.toDF()
 
-# Crawler lowercases column names
 cols = {c.lower(): c for c in df.columns}
-
 def c(name: str):
     key = name.lower()
     if key not in cols:
@@ -56,6 +50,10 @@ df2 = (
         F.regexp_replace(c("price").cast("string"), r"[^0-9.]", "").cast("decimal(10,2)").alias("price"),
     )
     .filter(F.col("purchase_date").isNotNull() & F.col("client_id").isNotNull())
+    # Duplicate the partition column so it is stored inside parquet:
+    .withColumn("purchase_date_value", F.col("purchase_date"))
+    # Keep both: purchase_date (partition key) + purchase_date_value (stored column)
+    .select("client_id", "purchase_date", "purchase_date_value", "product_name", "price")
 )
 
 (df2.write
