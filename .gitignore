@@ -31,3 +31,12 @@ Thumbs.db
 # === Your data folders (raw/stg) ===
 lec02/raw/
 lec02/stg/
+
+# local junk
+venv_parquet/
+tmp_*.parquet
+lec03/
+lec07/
+lec12/
+lec14/
+docker-nginx-hello/

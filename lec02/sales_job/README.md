@@ -48,7 +48,7 @@ sales_job/
    ```json
    {
      "date": "2022-08-09",
-     "raw_dir": "/mnt/c/my_homework/lec02/raw/sales/2022-08-09"
+     "raw_dir": "/mnt/c/my_homework/DATA-ENGINEERING/lec02/raw/sales/2022-08-09"
    }
    ```
 3. Виконує:
@@ -58,7 +58,7 @@ sales_job/
    - повернення `HTTP 201` у разі успіху.
 4. Результат:
    ```
-   /mnt/c/my_homework/lec02/raw/sales/2022-08-09/sales_2022-08-09.json
+   /mnt/c/my_homework/DATA-ENGINEERING/lec02/raw/sales/2022-08-09/sales_2022-08-09.json
    ```
 
 ---
@@ -69,8 +69,8 @@ sales_job/
 2. Приймає POST `/` із JSON:
    ```json
    {
-     "raw_dir": "/mnt/c/my_homework/lec02/raw/sales/2022-08-09",
-     "stg_dir": "/mnt/c/my_homework/lec02/stg/sales/2022-08-09"
+     "raw_dir": "/mnt/c/my_homework/DATA-ENGINEERING/lec02/raw/sales/2022-08-09",
+     "stg_dir": "/mnt/c/my_homework/DATA-ENGINEERING/lec02/stg/sales/2022-08-09"
    }
    ```
 3. Джоба:
@@ -152,7 +152,7 @@ pytest -q
 
 ### 1️ Перейти в директорію проєкту
 ```bash
-cd /mnt/c/my_homework/lec02/sales_job
+cd /mnt/c/my_homework/DATA-ENGINEERING/lec02/sales_job
 ```
 
 ### 2️ Активувати середовище
@@ -189,7 +189,7 @@ python check_jobs.py
 ```
 [1/3] Calling first job ... -> 201
 [2/3] Calling second job ... -> 201
-[3/3] OK: /mnt/c/my_homework/lec02/stg/sales/2022-08-09/sales_2022-08-09.avro
+[3/3] OK: /mnt/c/my_homework/DATA-ENGINEERING/lec02/stg/sales/2022-08-09/sales_2022-08-09.avro
 ```
 
 ---
@@ -199,7 +199,7 @@ python check_jobs.py
 Для оновлення чи перевстановлення залежностей:
 
 ```bash
-cd /mnt/c/my_homework/lec02/sales_job
+cd /mnt/c/my_homework/DATA-ENGINEERING/lec02/sales_job
 source .venv/bin/activate
 pip install -r requirements.txt --upgrade
 ```
